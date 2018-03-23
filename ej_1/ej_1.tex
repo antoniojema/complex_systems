@@ -1,0 +1,62 @@
+%% LyX 2.1.4 created this file.  For more info, see http://www.lyx.org/.
+%% Do not edit unless you really know what you are doing.
+\documentclass[english]{article}
+\usepackage[T1]{fontenc}
+\usepackage[latin9]{inputenc}
+\setlength{\parskip}{\smallskipamount}
+\setlength{\parindent}{0pt}
+\usepackage{amsmath}
+\usepackage{babel}
+\begin{document}
+
+\title{Ejercicios Sistemas Complejos}
+
+
+\author{Antonio Jesús Martín Valverde}
+
+\maketitle
+
+\section{Calcula los cumulantes de la distribución de Poisson:}
+
+\[
+P_{m}(a)=\dfrac{1}{m!}a^{m}e^{-a}
+\]
+
+
+
+\section*{con n definida en el rango de los enteros positivos o nulos, es decir,
+$n=0,1,2,...$ y siendo $a$ una constante positiva.}
+
+Consideramos la función generadora de cumulantes:
+
+\[
+K(t)=\ln<e^{tm}>=\ln\left[\sum_{m=0}^{\infty}\dfrac{1}{m!}a^{m}e^{-a}e^{tm}\right]=\ln\left[e^{-a}\sum_{m=0}^{\infty}\dfrac{1}{m!}\left(a\,e^{t}\right)^{m}\right]=\ln\left[e^{-a}e^{a\,e^{t}}\right]=a(e^{t}-1)
+\]
+
+
+Se tiene que el cumulante $\alpha$-ésimo es:
+
+\[
+\xi_{\alpha}=\left.\dfrac{d^{\alpha}K(t)}{dt^{\alpha}}\right|_{t=0}
+\]
+
+
+En nuestro caso se tiene que:
+
+\[
+\left.\dfrac{d^{\alpha}K(t)}{dt^{\alpha}}\right|_{t=0}=a\,e^{t}\,\forall\alpha\geq1\,\Longrightarrow\xi_{\alpha}=a\,\forall\alpha\geq1
+\]
+
+
+
+\section{Calcula las relaciones entre cumulantes y momentos hasta orden 4.}
+
+
+\section{Estudiar analíticamente y por medio del ordenador, la serie temporal
+resultante de iterar el mapa de la figura. En particular, calcular
+analíticamente el valor del exponente de Lyapunov y mostrar que es
+positivo. ¿Qué implicaciones tiene este hecho? Dibujar un gráfico
+con $x_{i}$ en el eje de abscisas y $x_{i+1}$ en el eje de ordenadas.
+¿Qué aspecto tiene? Verificar que aparece la forma ilustrada abajo
+(esto es que hay un desplazamiento de los decimales).}
+\end{document}
