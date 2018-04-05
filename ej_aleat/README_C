@@ -1,7 +1,0 @@
-La compilación se realiza con
-gcc -I /usr/local/include/ -O3 gsl.cpp -o Aleat -lgsl -lgslcblas -lm
-
-
-Toda la documentación se encuentra en 
-
-https://www.gnu.org/software/gsl/manual/html_node/Random-Number-Generation.html
