@@ -2,6 +2,7 @@ import numpy as np
 import random
 import os
 from scipy import misc
+import h5py as h5
 
 beta = 0.5
 def sigma(x):
@@ -12,7 +13,7 @@ def sigma_(x):
 	return 2.*beta*np.exp(-2*beta*x)/((1+np.exp(-2.*beta*x))**2)
 
 N_layers = 4
-dim=100
+dim = 100
 N = np.array([dim*dim,16,16,10])
 Ideal = np.eye(10)
 
@@ -28,6 +29,7 @@ def iteration(img, Id):
 	global M12
 	global M23
 	eta = 1
+	
 	V0 = img.reshape(-1)
 	H1 = np.array([ np.dot(M01[i][:] , V0[:]) for i in range(N[1])])
 	V1 = sigma( H1 )
@@ -48,15 +50,30 @@ def iteration(img, Id):
 	x , y = np.meshgrid(V1,delta12)
 	DeltaM12 = eta*x*y
 	
-	#Some error pops up in sigma_ function here:
-	delta01 = sigma_(H1) * np.array([np.dot( M12.transpose()[j] , delta12 ) for j in range(N[2])])
+	delta01 = sigma_(H1) * np.array([np.dot( M12.transpose()[j] , delta12 ) for j in range(N[1])])
 	x , y = np.meshgrid(V0,delta01)
 	DeltaM01 = eta*x*y
 	
-	M01 += DeltaM01
-	M12 += DeltaM12
-	M23 += DeltaM23
+	return DeltaM01 , DeltaM12 , DeltaM23
 
-img = np.flip( misc.imread('prueba.bmp',flatten=1) , 0 )
-result = iteration(img, Ideal[1])
-img = np.flip( misc.imread('prueba.bmp',flatten=1) , 0 )
+for n in range(10):
+	#DeltaM01 = 0
+	#DeltaM12 = 0
+	#DeltaM23 = 0
+	for j in range(10):
+		for i in range(3):
+			print 'data/img'+str(i)+'{0:03}'.format(j)+'.bmp'
+			img = (255. - np.flip( misc.imread('data/img'+str(i)+'{0:03}'.format(j)+'.bmp',flatten=1) , 0 )) / 255.
+			X,Y,Z = iteration(img, Ideal[i])
+			M01 += X
+			M12 += Y
+			M23 += Z
+	#M01 += DeltaM01
+	#M12 += DeltaM12
+	#M23 += DeltaM23
+
+fout = h5.File('Network1.h5','w')
+fout['M01'] = M01
+fout['M12'] = M12
+fout['M23'] = M23
+fout.close()
