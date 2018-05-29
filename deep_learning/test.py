@@ -37,5 +37,10 @@ for n in range(7):
 
 fonts = np.random.choice(range(N_FONTS),700,replace=False)
 
-W = bp.back_prop(N,[[w01,w12,w23],[a01,a12,a23],[th1,th2,th3]],fonts,verbose=True)[0]
+bp.ITERATIONS_ALL = 10000
+bp.ETA_ALL = 1
+bp.A = 0
+bp.B = 0
+bp.ALPHA = 0.5
+W = bp.back_prop_all(N,[[w01,w12,w23],[a01,a12,a23],[th1,th2,th3]],fonts,1,verbose=True)[0]
 bp.evaluate(N, W, [k for k in range(N_FONTS) if not k in fonts])
