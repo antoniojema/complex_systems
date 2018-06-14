@@ -1,46 +1,36 @@
 import numpy as np
 import random
-import matplotlib.pyplot as plt
+import h5py as h5
 import back_prop as bp
+from scipy import misc
+import time
 
-N_FONTS = 1000
+fin = h5.File('Best.h5','r')
+fonts = fin.attrs['fonts']
+N = fin.attrs['N']
+w01 = fin['w01'][:]
+w12 = fin['w12'][:]
+w23 = fin['w23'][:]
+a01 = fin['a01'][:]
+a12 = fin['a12'][:]
+a23 = fin['a23'][:]
+th1 = fin['th1'][:]
+th2 = fin['th2'][:]
+th3 = fin['th3'][:]
+fin.close()
+	
+bp.evaluate(N, [[w01,w12,w23],[a01,a12,a23],[th1,th2,th3]], np.random.choice(range(1000),300,replace=False))
 
-dim = 28
-N = np.array([dim*dim,49,16,10])
-#N = np.array([dim*dim,16,16,10])
-#Weighs matrix. wab[i][j] is the weigh of a[j] for b[i]
-w01 = np.array([[2.*(random.random()-0.5) for j in range(N[0])] for i in range(N[1])])
-w12 = np.array([[2.*(random.random()-0.5) for j in range(N[1])] for i in range(N[2])])
-w23 = np.array([[2.*(random.random()-0.5) for j in range(N[2])] for i in range(N[3])])
-#Alive matrix. If TRUE it means weigh exists
-a01 = np.array([[False for j in range(N[0])] for i in range(N[1])])
-a12 = np.array([[True for j in range(N[1])] for i in range(N[2])])
-a23 = np.array([[True for j in range(N[2])] for i in range(N[3])])
-#Thresholds
-th1 = np.array([2.*(random.random()-0.5) for i in range(N[1])])
-th2 = np.array([2.*(random.random()-0.5) for i in range(N[2])])
-th3 = np.array([2.*(random.random()-0.5) for i in range(N[3])])
+img = (255. - np.flip( misc.imread('test/img8.bmp',flatten=1) , 0 )) / 255.
+V0 = img.reshape(-1)
+H1 = np.array([ np.dot((a01*w01)[k][:] , V0[:]) for k in range(N[1])]) - th1
+V1 = bp.sigma( H1 )
+H2 = np.array([ np.dot((a12*w12)[k][:] , V1[:]) for k in range(N[2])]) - th2
+V2 = bp.sigma( H2 )
+H3 = np.array([ np.dot((a23*w23)[k][:] , V2[:]) for k in range(N[3])]) - th3
+V3 = bp.sigma( H3 )
+max_val = V3.tolist().index(np.amax(V3))
 
-'''
-for n in range(4):
-	for m in range(4):
-		for i in range(7):
-			for j in range(7):
-				a01[4*n+m][28*(7*n+i)+(7*m+i)] = True
-'''
-
-for n in range(7):
-	for m in range(7):
-		for i in range(4):
-			for j in range(4):
-				a01[7*n+m][28*(4*n+i)+(4*m+i)] = True
-
-fonts = np.random.choice(range(N_FONTS),700,replace=False)
-
-bp.ITERATIONS_ALL = 10000
-bp.ETA_ALL = 1
-bp.A = 0
-bp.B = 0
-bp.ALPHA = 0.5
-W = bp.back_prop_all(N,[[w01,w12,w23],[a01,a12,a23],[th1,th2,th3]],fonts,1,verbose=True)[0]
-bp.evaluate(N, W, [k for k in range(N_FONTS) if not k in fonts])
+print 1
+print V3
+print "Maximum value found found in ", max_val,"\n"

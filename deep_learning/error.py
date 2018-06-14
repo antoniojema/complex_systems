@@ -69,7 +69,7 @@ for i in range(n_omegas):
 			error_prediction += [1./n_fonts * (np.array(err_pred)).sum(axis=0)]
 		
 		if(n_fonts%10==0):
-            fonts += [font_extra]
+                        fonts += [font_extra]
 			font_extra = np.random.choice([k for k in range(bp.N_FONTS) if not k in fonts],1)[0]
 			err,aux,hit,errp = bp.back_prop(N,[[w01,w12,w23],[a01,a12,a23],[th1,th2,th3]],fonts,f_extra=font_extra,calculate_error=True)[1]
 			err_pred += [errp]
