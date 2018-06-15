@@ -111,9 +111,9 @@ def back_prop(N, W, fonts, f_extra=None, title='Network.h5', verbose=False, save
 					hits		 += [hit]
 					hits_percent += [100.*hit/tot]
 					if n_iterations > 1:
-						if error[n_iterations-1] < error[n_iterations-2]:
+						if error[len(error)-1] < error[len(error)-2]:
 							ETA += A
-						elif error[n_iterations-1] > error[n_iterations-2]:
+						elif error[len(error)-1] > error[len(error)-2]:
 							ETA += -1.*B*ETA
 				
 				if calculate_train_error:
