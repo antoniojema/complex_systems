@@ -5,8 +5,9 @@ from scipy import misc
 import h5py as h5
 import time
 
-ITERATIONS = 20
+MAX_ITERATIONS = 10000
 ITERATIONS_ALL = 100
+N_FONTS_ERROR = 50
 N_FONTS = 1000
 BETA = 0.5		# Sigmoid parameter
 ETA = 1 		# Gradient descent parameter
@@ -57,7 +58,7 @@ def iteration(img, Id, N, w01, w12, w23, a01, a12, a23, th1, th2, th3, verbose=F
 
 	return Deltaw01 , Deltaw12 , Deltaw23, Deltath1, Deltath2, Deltath3
 
-def back_prop(N, W, fonts, f_extra=None, title='Network.h5', verbose=False, save=False, calculate_error=False, calculate_train_error=False,converge_criteria=False,max_iterations=10000,n_fonts_error=100,error_criteria=0.1):
+def back_prop(N, W, fonts, f_extra=None, title='Network.h5', verbose=False, save=False, calculate_error=False, calculate_train_error=False,converge_criteria=False,max_iterations=MAX_ITERATIONS,n_fonts_error=N_FONTS_ERROR,error_criteria=0.1):
 	global ITERATIONS,ITERATIONS_ALL,N_FONTS,BETA,ETA,ETA_ALL,GAMMA,ALPHA,A,B
 	
 	Ideal = np.eye(10)
