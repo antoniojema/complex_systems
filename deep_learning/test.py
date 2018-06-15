@@ -4,7 +4,9 @@ import h5py as h5
 import back_prop as bp
 from scipy import misc
 import time
+import matplotlib.pyplot as plt
 
+'''
 fin = h5.File('Best.h5','r')
 fonts = fin.attrs['fonts']
 N = fin.attrs['N']
@@ -18,7 +20,7 @@ th1 = fin['th1'][:]
 th2 = fin['th2'][:]
 th3 = fin['th3'][:]
 fin.close()
-	
+
 bp.evaluate(N, [[w01,w12,w23],[a01,a12,a23],[th1,th2,th3]], np.random.choice(range(1000),300,replace=False))
 
 img = (255. - np.flip( misc.imread('test/img8.bmp',flatten=1) , 0 )) / 255.
@@ -34,3 +36,17 @@ max_val = V3.tolist().index(np.amax(V3))
 print 1
 print V3
 print "Maximum value found found in ", max_val,"\n"
+'''
+
+dim =28
+N=[dim*dim,16,16,10]
+W = bp.set_rand_omega(N)
+
+fonts = range(300)
+train_error,caca1,caca2,caca3,caca4,n_iterations = bp.back_prop(N, W, fonts, calculate_train_error=True,converge=True,verbose=True)[1]
+del caca1,caca2,caca3,caca4
+
+print n_iterations
+
+plt.plot(train_error)
+plt.show()

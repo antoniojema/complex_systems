@@ -4,9 +4,8 @@ import matplotlib.pyplot as plt
 import h5py as h5
 import back_prop as bp
 
-def set_rand_omega():
-	global N, w01, w12, w23, a01, a12, a23, th1, th2, th3
-	dim = 28
+def set_rand_omega(N):
+	global w01, w12, w23, a01, a12, a23, th1, th2, th3
 	N = np.array([dim*dim,49,16,10])
 	#N = np.array([dim*dim,16,16,10])
 	#Weighs matrix. wab[i][j] is the weigh of a[j] for b[i]
@@ -39,6 +38,8 @@ def set_rand_omega():
 #### CODIGO IMPORTANTE #####
 T = 30
 n_omegas = 1000
+dim = 28
+N = np.array([dim*dim,49,16,10])
 
 error_av = np.zeros((int(T/10),bp.ITERATIONS))
 hits_av = np.zeros((int(T/10),bp.ITERATIONS))
@@ -46,7 +47,7 @@ error_prediction_av = np.zeros((int(T/10),bp.ITERATIONS))
 
 for i in range(n_omegas):
 	print '\n###',i,'###'
-	set_rand_omega()
+	set_rand_omega(N)
 	
 	error = []
 	hits = []
@@ -68,8 +69,8 @@ for i in range(n_omegas):
 			
 			error_prediction += [1./n_fonts * (np.array(err_pred)).sum(axis=0)]
 		
-		if(n_fonts%10==0):
-                        fonts += [font_extra]
+		elif(n_fonts%10==0):
+			fonts += [font_extra]
 			font_extra = np.random.choice([k for k in range(bp.N_FONTS) if not k in fonts],1)[0]
 			err,aux,hit,errp = bp.back_prop(N,[[w01,w12,w23],[a01,a12,a23],[th1,th2,th3]],fonts,f_extra=font_extra,calculate_error=True)[1]
 			err_pred += [errp]

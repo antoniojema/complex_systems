@@ -57,7 +57,7 @@ def iteration(img, Id, N, w01, w12, w23, a01, a12, a23, th1, th2, th3, verbose=F
 
 	return Deltaw01 , Deltaw12 , Deltaw23, Deltath1, Deltath2, Deltath3
 
-def back_prop(N, W, fonts, f_extra=None, title='Network.h5', verbose=False, save=False, calculate_error=False):
+def back_prop(N, W, fonts, f_extra=None, title='Network.h5', verbose=False, save=False, calculate_error=False, calculate_train_error=False,converge_criteria=False,max_iterations=10000,n_fonts_error=100,error_criteria=0.1):
 	global ITERATIONS,ITERATIONS_ALL,N_FONTS,BETA,ETA,ETA_ALL,GAMMA,ALPHA,A,B
 	
 	Ideal = np.eye(10)
@@ -68,21 +68,27 @@ def back_prop(N, W, fonts, f_extra=None, title='Network.h5', verbose=False, save
 	th1 = W[2][0]; th2 = W[2][1]; th3 = W[2][2];
 
 	#Begins network computing
-	error = []	
+	training_error = []
+	error = []
 	hits = []
 	hits_percent = []
 	error_prediction = []
-	for n in range(ITERATIONS):
+	not_converged=True
+	n_iterations=0
+	#for n in range(ITERATIONS):
+	
+	while True:
 		for j in fonts:
 			for i in range(10):
+				n_iterations+=1
 				
-				if n>0:
+				if n_iterations>1:
 					Dw01_,Dw12_,Dw23_,Dth1_,Dth2_,Dth3_ = Dw01[:],Dw12[:],Dw23[:],Dth1[:],Dth2[:],Dth3[:]
 				else:
 					Dw01_,Dw12_,Dw23_,Dth1_,Dth2_,Dth3_ = 0*w01,0*w12,0*w23,0*th1,0*th2,0*th3
 				
 				if verbose:
-					print str(n+1)+'/'+str(ITERATIONS)+': data/img'+str(i)+'{0:03}'.format(j)+'.bmp'
+					print str(n_iterations)+': data/img'+str(i)+'{0:03}'.format(j)+'.bmp'
 				
 				img = (255. - np.flip( misc.imread('data/img'+str(i)+'{0:03}'.format(j)+'.bmp',flatten=1) , 0 )) / 255.
 				Dw01,Dw12,Dw23,Dth1,Dth2,Dth3 = iteration(img, Ideal[i], N, w01, w12, w23, a01, a12, a23, th1, th2, th3, verbose)
@@ -93,39 +99,106 @@ def back_prop(N, W, fonts, f_extra=None, title='Network.h5', verbose=False, save
 				th1 += Dth1 + ALPHA * Dth1_ - ETA*GAMMA * th1/((1+th1**2)**2)
 				th2 += Dth2 + ALPHA * Dth2_ - ETA*GAMMA * th2/((1+th2**2)**2)
 				th3 += Dth3 + ALPHA * Dth3_ - ETA*GAMMA * th3/((1+th3**2)**2)
+			
+			if n_iterations%(10*n_fonts_error)==0:
+				if f_extra!=None:
+					error_prediction += [evaluate(N,[[w01,w12,w23],[a01,a12,a23],[th1,th2,th3]],[f_extra], printerror=False)[0]]
+				
+				if calculate_error:		#calculate_error==True -> Cada vez que ha pasado por todas las imagenes, calcula el error con el resto
+					#Calcula el error, aciertos y aciertos(%) y lo anade a sus correspondientes vectores 
+					err,hit,tot = evaluate(N,[[w01,w12,w23],[a01,a12,a23],[th1,th2,th3]],[k for k in range(N_FONTS) if not k in fonts], printerror=False)
+					error		 += [err]
+					hits		 += [hit]
+					hits_percent += [100.*hit/tot]
+					if n_iterations > 1:
+						if error[n_iterations-1] < error[n_iterations-2]:
+							ETA += A
+						elif error[n_iterations-1] > error[n_iterations-2]:
+							ETA += -1.*B*ETA
+				
+				if calculate_train_error:
+					training_error += [evaluate(N, [[w01,w12,w23],[a01,a12,a23],[th1,th2,th3]], fonts, printerror=False)[0]]
 		
-		if f_extra!=None:
-			error_prediction += [evaluate(N,[[w01,w12,w23],[a01,a12,a23],[th1,th2,th3]],[f_extra], printerror=False)[0]]
+			#Criterio de convergencia
+			if converge_criteria:
+				if evaluate(N, [[w01,w12,w23],[a01,a12,a23],[th1,th2,th3]], fonts, printerror=False)[0] < error_criteria:
+					not_converged = False
+				elif n_iterations >= max_iterations:
+					not_converged = False
+					n_iterations += 1
+			
+			elif n_iterations >= max_iterations:
+				not_converged = False
+			
+			if not not_converged:
+				if save:	#save==True -> Guarda en H5 la red y las fuentes con las que ha sido entrenada, devuelve el error
+					fout = h5.File(title,'w')
+					fout.attrs['fonts'] = fonts
+					fout.attrs['N'] = N
+					fout['w01'] = w01
+					fout['w12'] = w12
+					fout['w23'] = w23
+					fout['a01'] = a01
+					fout['a12'] = a12
+					fout['a23'] = a23
+					fout['th1'] = th1
+					fout['th2'] = th2
+					fout['th3'] = th3
+					fout.close()
+					return training_error, error, hits, hits_percent, error_prediction, n_iterations
+				else:		#save==False -> Devuelve como parametros la red y el error
+					return [[w01,w12,w23],[a01,a12,a23],[th1,th2,th3]], [training_error, error, hits, hits_percent, error_prediction, n_iterations]
 		
-		if calculate_error:		#calculate_error==True -> Cada vez que ha pasado por todas las imagenes, calcula el error con el resto
-			#Calcula el error, aciertos y aciertos(%) y lo anade a sus correspondientes vectores 
-			err,hit,tot = evaluate(N,[[w01,w12,w23],[a01,a12,a23],[th1,th2,th3]],[k for k in range(N_FONTS) if not k in fonts], printerror=False)
-			error		 += [err]
-			hits		 += [hit]
-			hits_percent += [100.*hit/tot]
-			if n > 0:
-				if error[n] < error[n-1]:
-					ETA += A
-				else:
-					ETA += -1.*B*ETA
-	
-	if save:	#save==True -> Guarda en H5 la red y las fuentes con las que ha sido entrenada, devuelve el error
-		fout = h5.File(title,'w')
-		fout.attrs['fonts'] = fonts
-		fout.attrs['N'] = N
-		fout['w01'] = w01
-		fout['w12'] = w12
-		fout['w23'] = w23
-		fout['a01'] = a01
-		fout['a12'] = a12
-		fout['a23'] = a23
-		fout['th1'] = th1
-		fout['th2'] = th2
-		fout['th3'] = th3
-		fout.close()
-		return error, hits, hits_percent
-	else:		#save==False -> Devuelve como parametros la red y el error
-		return [[w01,w12,w23],[a01,a12,a23],[th1,th2,th3]], [error, hits, hits_percent, error_prediction]
+		if len(fonts) == 0:
+			n_iterations+=1
+			if n_iterations%(10*n_fonts_error)==0:
+				if f_extra!=None:
+					error_prediction += [evaluate(N,[[w01,w12,w23],[a01,a12,a23],[th1,th2,th3]],[f_extra], printerror=False)[0]]
+				
+				if calculate_error:		#calculate_error==True -> Cada vez que ha pasado por todas las imagenes, calcula el error con el resto
+					#Calcula el error, aciertos y aciertos(%) y lo anade a sus correspondientes vectores 
+					err,hit,tot = evaluate(N,[[w01,w12,w23],[a01,a12,a23],[th1,th2,th3]],[k for k in range(N_FONTS) if not k in fonts], printerror=False)
+					error		 += [err]
+					hits		 += [hit]
+					hits_percent += [100.*hit/tot]
+					if n_iterations > 1:
+						if error[n_iterations-1] < error[n_iterations-2]:
+							ETA += A
+						elif error[n_iterations-1] > error[n_iterations-2]:
+							ETA += -1.*B*ETA
+				
+				if calculate_train_error:
+					training_error += [evaluate(N, [[w01,w12,w23],[a01,a12,a23],[th1,th2,th3]], fonts, printerror=False)[0]]
+		
+			#Criterio de convergencia
+			if converge_criteria:
+				if evaluate(N, [[w01,w12,w23],[a01,a12,a23],[th1,th2,th3]], fonts, printerror=False)[0] < error_criteria:
+					not_converged = False
+				elif n_iterations >= max_iterations:
+					not_converged = False
+					n_iterations += 1
+			
+			elif n_iterations >= max_iterations:
+				not_converged = False
+			
+			if not not_converged:
+				if save:	#save==True -> Guarda en H5 la red y las fuentes con las que ha sido entrenada, devuelve el error
+					fout = h5.File(title,'w')
+					fout.attrs['fonts'] = fonts
+					fout.attrs['N'] = N
+					fout['w01'] = w01
+					fout['w12'] = w12
+					fout['w23'] = w23
+					fout['a01'] = a01
+					fout['a12'] = a12
+					fout['a23'] = a23
+					fout['th1'] = th1
+					fout['th2'] = th2
+					fout['th3'] = th3
+					fout.close()
+					return training_error, error, hits, hits_percent, error_prediction, n_iterations
+				else:		#save==False -> Devuelve como parametros la red y el error
+					return [[w01,w12,w23],[a01,a12,a23],[th1,th2,th3]], [training_error, error, hits, hits_percent, error_prediction, n_iterations]
 
 def back_prop_all(N, W, fonts, n_fonts=1, f_extra=None, title='Network.h5', verbose=False, save=False, calculate_error=False):
 	global ITERATIONS,ITERATIONS_ALL,N_FONTS,BETA,ETA,ETA_ALL,GAMMA,ALPHA,A,B
@@ -245,9 +318,13 @@ def evaluate(N, W, fonts, printerror=True, verbose=False):
 			if verbose:
 				print i
 				print V3
-				print "Maximum value found found in ", max_val,"\n"
+				print 'Maximum value found found in ', max_val,'\n'
 	
-	error = 1.*error/(10*len(fonts))
+	if not len(fonts) == 0:
+		error = 1.*error/(10*len(fonts))
+	else:
+		error = 0.
+	
 	if printerror:
 		print 'Total:',aciertos+fallos
 		print 'Aciertos:',aciertos
@@ -256,3 +333,19 @@ def evaluate(N, W, fonts, printerror=True, verbose=False):
 	
 	return error, aciertos, aciertos+fallos
 
+def set_rand_omega(N):
+	#N = np.array([dim*dim,16,16,10])
+	#Weighs matrix. wab[i][j] is the weigh of a[j] for b[i]
+	w01 = np.array([[2.*(random.random()-0.5) for j in range(N[0])] for i in range(N[1])])
+	w12 = np.array([[2.*(random.random()-0.5) for j in range(N[1])] for i in range(N[2])])
+	w23 = np.array([[2.*(random.random()-0.5) for j in range(N[2])] for i in range(N[3])])
+	#Alive matrix. If TRUE it means weigh exists
+	a01 = np.array([[True for j in range(N[0])] for i in range(N[1])])
+	a12 = np.array([[True for j in range(N[1])] for i in range(N[2])])
+	a23 = np.array([[True for j in range(N[2])] for i in range(N[3])])
+	#Thresholds
+	th1 = np.array([2.*(random.random()-0.5) for i in range(N[1])])
+	th2 = np.array([2.*(random.random()-0.5) for i in range(N[2])])
+	th3 = np.array([2.*(random.random()-0.5) for i in range(N[3])])
+	
+	return [[w01, w12, w23],[a01, a12, a23],[th1, th2, th3]]
