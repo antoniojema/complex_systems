@@ -4,24 +4,23 @@ import matplotlib.pyplot as plt
 import h5py as h5
 import back_prop as bp
 import time
+import architecture_selection as arch
 
 T = 50
-n_omegas = 100
-dim = 28
-N = np.array([dim*dim,16,16,10])
+n_omegas = 10
 
 training_error_av = np.zeros((int(T/10),int(bp.MAX_ITERATIONS/(10*bp.N_FONTS_ERROR))))
 error_av = np.zeros((int(T/10),int(bp.MAX_ITERATIONS/(10*bp.N_FONTS_ERROR))))
 hits_av = np.zeros((int(T/10),int(bp.MAX_ITERATIONS/(10*bp.N_FONTS_ERROR))))
 error_prediction_av = np.zeros((int(T/10),int(bp.MAX_ITERATIONS/(10*bp.N_FONTS_ERROR))))
 
-#for momentum in [0.2,0.4,0.6,0.8,1]:
-for momentum in [0]:
-	bp.ALPHA=momentum
+for architecture in ['2x2','4x4','7x7','14x14','solapado'#,'solapado+'
+]:
 	
 	for i in range(n_omegas):
+		
 		print '\n###',i,'###'
-		[[w01,w12,w23],[a01,a12,a23],[th1,th2,th3]] = bp.set_rand_omega(N)
+		N, [[w01,w12,w23],[a01,a12,a23],[th1,th2,th3]] = arch.architecture(architecture)
 		
 		training_error = []
 		error = []
@@ -73,7 +72,7 @@ for momentum in [0]:
 		error_prediction_av += error_prediction
 		
 		print 'Generando archivo...'
-		fout = h5.File('Error_momentum_'+str(momentum)+'.h5','w')
+		fout = h5.File('Error_architecture_'+architecture+'.h5','w')
 		fout.attrs['n_omegas'] = i+1
 		fout['training_error'] = 1.*training_error_av/(i+1)
 		fout['error'] = 1.*error_av/(i+1)
