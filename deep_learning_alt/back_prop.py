@@ -2,16 +2,17 @@ import numpy as np
 import random
 import h5py as h5
 
-MAX_ITERATIONS = 100000
-N_IMAGES_ERROR = 500
-N_IMAGES_TRAIN = 60000
-N_IMAGES_TEST = 10000
+MAX_ITERATIONS = 100000		# Cuantas iteraciones realizara como maximo, si no se indica otra cosa
+N_IMAGES_ERROR = 500		# Cada cuantas imagenes (iteraciones) computa los errores
+N_IMAGES_TRAIN = 60000		# Numero total de imagenes disponibles en el set de entrenamiento
+N_IMAGES_TEST = 10000		# Numero total de imagenes disponibles en el set de testeo
 BETA = 0.5		# Sigmoid parameter
 ETA = 1 		# Gradient descent parameter
 GAMMA = 0		# Parametro para darle menos valor a los valores bajos
 ALPHA = 0		# Momentum parameter
-A = 0  			# Parameters for adaptative ETA 
+A = 0  			# Parameters for adaptative ETA  (A and B)
 B = 0
+DEVIATION = 0	# Deviation for the gaussian random generator
 
 SET = h5.File('mnist.h5','r')
 TRAIN_IMAGES = SET['train_images'][:]
@@ -100,12 +101,12 @@ def back_prop(N, W, images, imgset='train', img_extra=None, title='Network.h5', 
 				img = 1. - 1.*TEST_IMAGES[i]/255.
 				Dw01,Dw12,Dw23,Dth1,Dth2,Dth3 = iteration(img, Ideal[TEST_LABELS[i]], N, w01, w12, w23, a01, a12, a23, th1, th2, th3, verbose)
 			
-			w01 += Dw01 + ALPHA * Dw01_ - ETA*GAMMA * w01/((1+w01**2)**2)
-			w12 += Dw12 + ALPHA * Dw12_ - ETA*GAMMA * w12/((1+w12**2)**2)
-			w23 += Dw23 + ALPHA * Dw23_ - ETA*GAMMA * w23/((1+w23**2)**2)
-			th1 += Dth1 + ALPHA * Dth1_ - ETA*GAMMA * th1/((1+th1**2)**2)
-			th2 += Dth2 + ALPHA * Dth2_ - ETA*GAMMA * th2/((1+th2**2)**2)
-			th3 += Dth3 + ALPHA * Dth3_ - ETA*GAMMA * th3/((1+th3**2)**2)
+			w01 += Dw01 + ALPHA * Dw01_ - ETA*GAMMA * w01/((1+w01**2)**2) + np.random.normal(0,DEVIATION)
+			w12 += Dw12 + ALPHA * Dw12_ - ETA*GAMMA * w12/((1+w12**2)**2) + np.random.normal(0,DEVIATION)
+			w23 += Dw23 + ALPHA * Dw23_ - ETA*GAMMA * w23/((1+w23**2)**2) + np.random.normal(0,DEVIATION)
+			th1 += Dth1 + ALPHA * Dth1_ - ETA*GAMMA * th1/((1+th1**2)**2) + np.random.normal(0,DEVIATION)
+			th2 += Dth2 + ALPHA * Dth2_ - ETA*GAMMA * th2/((1+th2**2)**2) + np.random.normal(0,DEVIATION)
+			th3 += Dth3 + ALPHA * Dth3_ - ETA*GAMMA * th3/((1+th3**2)**2) + np.random.normal(0,DEVIATION)
 			
 			if n_iterations%n_images_error==0:
 				if img_extra!=None:

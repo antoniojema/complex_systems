@@ -5,9 +5,9 @@ from scipy import misc
 import h5py as h5
 import time
 
-MAX_ITERATIONS = 10000
+MAX_ITERATIONS = 10000	#Cuantas iteraciones realizara como maximo, si no se indica otra cosa
 ITERATIONS_ALL = 100
-N_FONTS_ERROR = 50
+N_FONTS_ERROR = 50		#Cada cuantas fuentes computa los errores (multiplicar por 10 para obtener iteraciones)
 N_FONTS = 1000
 BETA = 0.5		# Sigmoid parameter
 ETA = 1 		# Gradient descent parameter
@@ -16,6 +16,7 @@ GAMMA = 0		# Parametro para darle menos valor a los valores bajos
 ALPHA = 0		# Momentum parameter
 A = 0  			# Parameters for adaptative ETA 
 B = 0
+DEVIATION = 0	# Deviation for the gaussian random generator
 
 def sigma(x):
 	global BETA
@@ -94,12 +95,12 @@ def back_prop(N, W, fonts, f_extra=None, title='Network.h5', verbose=False, save
 				img = (255. - np.flip( misc.imread('data/img'+str(i)+'{0:03}'.format(j)+'.bmp',flatten=1) , 0 )) / 255.
 				Dw01,Dw12,Dw23,Dth1,Dth2,Dth3 = iteration(img, Ideal[i], N, w01, w12, w23, a01, a12, a23, th1, th2, th3, verbose)
 				
-				w01 += Dw01 + ALPHA * Dw01_ - ETA*GAMMA * w01/((1+w01**2)**2)
-				w12 += Dw12 + ALPHA * Dw12_ - ETA*GAMMA * w12/((1+w12**2)**2)
-				w23 += Dw23 + ALPHA * Dw23_ - ETA*GAMMA * w23/((1+w23**2)**2)
-				th1 += Dth1 + ALPHA * Dth1_ - ETA*GAMMA * th1/((1+th1**2)**2)
-				th2 += Dth2 + ALPHA * Dth2_ - ETA*GAMMA * th2/((1+th2**2)**2)
-				th3 += Dth3 + ALPHA * Dth3_ - ETA*GAMMA * th3/((1+th3**2)**2)
+				w01 += Dw01 + ALPHA * Dw01_ - ETA*GAMMA * w01/((1+w01**2)**2) + np.random.normal(0,DEVIATION)
+				w12 += Dw12 + ALPHA * Dw12_ - ETA*GAMMA * w12/((1+w12**2)**2) + np.random.normal(0,DEVIATION)
+				w23 += Dw23 + ALPHA * Dw23_ - ETA*GAMMA * w23/((1+w23**2)**2) + np.random.normal(0,DEVIATION)
+				th1 += Dth1 + ALPHA * Dth1_ - ETA*GAMMA * th1/((1+th1**2)**2) + np.random.normal(0,DEVIATION)
+				th2 += Dth2 + ALPHA * Dth2_ - ETA*GAMMA * th2/((1+th2**2)**2) + np.random.normal(0,DEVIATION)
+				th3 += Dth3 + ALPHA * Dth3_ - ETA*GAMMA * th3/((1+th3**2)**2) + np.random.normal(0,DEVIATION)
 			
 			if n_iterations%(10*n_fonts_error)==0:
 				if f_extra!=None:
@@ -201,6 +202,8 @@ def back_prop(N, W, fonts, f_extra=None, title='Network.h5', verbose=False, save
 				else:		#save==False -> Devuelve como parametros la red y el error
 					return [[w01,w12,w23],[a01,a12,a23],[th1,th2,th3]], [training_error, error, hits, hits_percent, error_prediction, n_iterations]
 
+# v Esto es basicamente basura v #
+'''
 def back_prop_all(N, W, fonts, n_fonts=1, f_extra=None, title='Network.h5', verbose=False, save=False, calculate_error=False):
 	global ITERATIONS,ITERATIONS_ALL,N_FONTS,BETA,ETA,ETA_ALL,GAMMA,ALPHA,A,B
 	
@@ -284,6 +287,7 @@ def back_prop_all(N, W, fonts, n_fonts=1, f_extra=None, title='Network.h5', verb
 		return error, hits, hits_percent
 	else:		#save==False -> Devuelve como parametros la red y el error
 		return [[w01,w12,w23],[a01,a12,a23],[th1,th2,th3]], [error, hits, hits_percent, error_prediction]
+'''
 
 def evaluate(N, W, fonts, printerror=True, verbose=False):
 	global ITERATIONS,ITERATIONS_ALL,N_FONTS,BETA,ETA,ETA_ALL,GAMMA,ALPHA,A,B
