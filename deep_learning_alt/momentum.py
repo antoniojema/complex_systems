@@ -2,7 +2,7 @@ import numpy as np
 import h5py as h5
 import back_prop as bp
 import time
-
+'''
 Tmax = 6000
 DT = 1000
 n_images_error = 1000
@@ -11,14 +11,14 @@ n_images_error = 1000
 Tmax = 60000
 DT = 10000
 n_images_error = bp.N_IMAGES_ERROR
-'''
+
 n_omegas = 10
 dim = 28
 N = np.array([dim*dim,16,16,10])
 
-training_error_av = np.zeros((int(Tmax/DT) , int(bp.MAX_ITERATIONS/bp.N_IMAGES_ERROR)))
-error_av = np.zeros((int(Tmax/DT) , int(bp.MAX_ITERATIONS/bp.N_IMAGES_ERROR)))
-hits_av = np.zeros((int(Tmax/DT) , int(bp.MAX_ITERATIONS/bp.N_IMAGES_ERROR)))
+training_error_av = np.zeros((int(Tmax/DT) , int(bp.MAX_ITERATIONS/n_images_error)))
+error_av = np.zeros((int(Tmax/DT) , int(bp.MAX_ITERATIONS/n_images_error)))
+hits_av = np.zeros((int(Tmax/DT) , int(bp.MAX_ITERATIONS/n_images_error)))
 
 for i in range(n_omegas):
 	print '\n###',i,'###'
@@ -40,6 +40,7 @@ for i in range(n_omegas):
 			images = np.random.choice(range(bp.N_IMAGES_TRAIN),T,replace=False)
 			
 			tr_err,err,aux,hit = bp.back_prop(N,[[w01,w12,w23],[a01,a12,a23],[th1,th2,th3]],images,calculate_error=True,calculate_train_error=True,n_images_error=n_images_error)[1][:4]
+			
 			
 			training_error += [tr_err]
 			error += [err]
