@@ -1,24 +1,27 @@
 import numpy as np
 import random
+import os
+from scipy import misc
 import h5py as h5
+import time
 
-MAX_ITERATIONS = 100000		# Cuantas iteraciones realizara como maximo, si no se indica otra cosa
-N_IMAGES_ERROR = 500		# Cada cuantas imagenes (iteraciones) computa los errores
-N_IMAGES_TRAIN = 60000		# Numero total de imagenes disponibles en el set de entrenamiento
-N_IMAGES_TEST = 10000		# Numero total de imagenes disponibles en el set de testeo
+MAX_ITERATIONS = 14000	#Cuantas iteraciones realizara como maximo, si no se indica otra cosa
+N_FONTS_ERROR = 50		#Cada cuantas fuentes computa los errores (multiplicar por 10 para obtener iteraciones)
+N_FONTS = 1000
 BETA = 0.5		# Sigmoid parameter
 ETA = 1 		# Gradient descent parameter
 GAMMA = 0		# Parametro para darle menos valor a los valores bajos
 ALPHA = 0		# Momentum parameter
-A = 0  			# Parameters for adaptative ETA  (A and B)
+A = 0  			# Parameters for adaptative ETA 
 B = 0
 DEVIATION = 0	# Deviation for the gaussian random generator
 
-SET = h5.File('mnist.h5','r')
-TRAIN_IMAGES = SET['train_images'][:]
-TRAIN_LABELS = SET['train_labels'][:]
-TEST_IMAGES = SET['test_images'][:]
-TEST_LABELS = SET['test_labels'][:]
+fin = h5.File('images.h5','r')
+IMAGES = fin['images'][:]		# All data
+fin.close()
+del fin
+
+####################################################################################
 
 def sigma(x):
 	global BETA
@@ -61,8 +64,8 @@ def iteration(img, Id, N, w01, w12, w23, a01, a12, a23, th1, th2, th3, verbose=F
 
 	return Deltaw01 , Deltaw12 , Deltaw23, Deltath1, Deltath2, Deltath3
 
-def back_prop(N, W, images, imgset='train', img_extra=None, title='Network.h5', verbose=False, save=False, calculate_error=False, calculate_train_error=False,converge_criteria=False,max_iterations=MAX_ITERATIONS,n_images_error=N_IMAGES_ERROR,error_criteria=0.01):
-	global TRAIN_IMAGES, TRAIN_LABELS, TEST_IMAGES, TEST_LABELS, MAX_ITERATIONS, N_IMAGES_ERROR, ETA, BETA, GAMMA, ALPHA, A, B
+def back_prop(N, W, fonts, f_extra=None, title='Network.h5', verbose=False, save=False, calculate_error=False, calculate_train_error=False,converge_criteria=False,max_iterations=MAX_ITERATIONS,n_fonts_error=N_FONTS_ERROR,error_criteria=0.1):
+	global ETA,GAMMA,ALPHA,A,B
 	
 	Ideal = np.eye(10)
 	
@@ -79,42 +82,45 @@ def back_prop(N, W, images, imgset='train', img_extra=None, title='Network.h5', 
 	error_prediction = []
 	not_converged=True
 	n_iterations=0
-	#for n in range(ITERATIONS):
 	
 	while True:
-		for i in images:
-			#for i in range(10):
-			n_iterations+=1
+		for j in fonts:
+			for i in range(10):
+				n_iterations+=1
+				
+				if n_iterations>1:
+					Dw01_,Dw12_,Dw23_,Dth1_,Dth2_,Dth3_ = Dw01[:],Dw12[:],Dw23[:],Dth1[:],Dth2[:],Dth3[:]
+				else:
+					Dw01_,Dw12_,Dw23_,Dth1_,Dth2_,Dth3_ = 0*w01,0*w12,0*w23,0*th1,0*th2,0*th3
+				
+				if verbose:
+					print str(n_iterations)+': data/img'+str(i)+'{0:03}'.format(j)+'.bmp'
+				
+				img = 1. - 1.*IMAGES[int(1000*i+j)] / 255.
+				Dw01,Dw12,Dw23,Dth1,Dth2,Dth3 = iteration(img, Ideal[i], N, w01, w12, w23, a01, a12, a23, th1, th2, th3, verbose)
+				
+				w01 += Dw01 + ALPHA * Dw01_ - ETA*GAMMA * w01/((1+w01**2)**2)
+				w12 += Dw12 + ALPHA * Dw12_ - ETA*GAMMA * w12/((1+w12**2)**2)
+				w23 += Dw23 + ALPHA * Dw23_ - ETA*GAMMA * w23/((1+w23**2)**2)
+				th1 += Dth1 + ALPHA * Dth1_ - ETA*GAMMA * th1/((1+th1**2)**2)
+				th2 += Dth2 + ALPHA * Dth2_ - ETA*GAMMA * th2/((1+th2**2)**2)
+				th3 += Dth3 + ALPHA * Dth3_ - ETA*GAMMA * th3/((1+th3**2)**2)
+				
+				if DEVIATION!=0:
+					w01 += np.random.normal(0,DEVIATION)
+					w12 += np.random.normal(0,DEVIATION)
+					w23 += np.random.normal(0,DEVIATION)
+					th1 += np.random.normal(0,DEVIATION)
+					th2 += np.random.normal(0,DEVIATION)
+					th3 += np.random.normal(0,DEVIATION)
 			
-			if n_iterations>1:
-				Dw01_,Dw12_,Dw23_,Dth1_,Dth2_,Dth3_ = Dw01[:],Dw12[:],Dw23[:],Dth1[:],Dth2[:],Dth3[:]
-			else:
-				Dw01_,Dw12_,Dw23_,Dth1_,Dth2_,Dth3_ = 0*w01,0*w12,0*w23,0*th1,0*th2,0*th3
-			
-			if verbose:
-				print 'Iteration',str(n_iterations)
-			
-			if imgset == 'train':
-				img = 1. - 1.*TRAIN_IMAGES[i]/255.
-				Dw01,Dw12,Dw23,Dth1,Dth2,Dth3 = iteration(img, Ideal[TRAIN_LABELS[i]], N, w01, w12, w23, a01, a12, a23, th1, th2, th3, verbose)
-			elif imgset == 'test':
-				img = 1. - 1.*TEST_IMAGES[i]/255.
-				Dw01,Dw12,Dw23,Dth1,Dth2,Dth3 = iteration(img, Ideal[TEST_LABELS[i]], N, w01, w12, w23, a01, a12, a23, th1, th2, th3, verbose)
-			
-			w01 += Dw01 + ALPHA * Dw01_ - ETA*GAMMA * w01/((1+w01**2)**2) + np.random.normal(0,DEVIATION)
-			w12 += Dw12 + ALPHA * Dw12_ - ETA*GAMMA * w12/((1+w12**2)**2) + np.random.normal(0,DEVIATION)
-			w23 += Dw23 + ALPHA * Dw23_ - ETA*GAMMA * w23/((1+w23**2)**2) + np.random.normal(0,DEVIATION)
-			th1 += Dth1 + ALPHA * Dth1_ - ETA*GAMMA * th1/((1+th1**2)**2) + np.random.normal(0,DEVIATION)
-			th2 += Dth2 + ALPHA * Dth2_ - ETA*GAMMA * th2/((1+th2**2)**2) + np.random.normal(0,DEVIATION)
-			th3 += Dth3 + ALPHA * Dth3_ - ETA*GAMMA * th3/((1+th3**2)**2) + np.random.normal(0,DEVIATION)
-			
-			if n_iterations%n_images_error==0:
-				if img_extra!=None:
-					error_prediction += [evaluate(N,[[w01,w12,w23],[a01,a12,a23],[th1,th2,th3]],[img_extra], imgset='train', printerror=False)[0]]
+			if n_iterations%(10*n_fonts_error)==0:
+				if f_extra!=None:
+					error_prediction += [evaluate(N,[[w01,w12,w23],[a01,a12,a23],[th1,th2,th3]],[f_extra], printerror=False)[0]]
 				
 				if calculate_error:		#calculate_error==True -> Cada vez que ha pasado por todas las imagenes, calcula el error con el resto
 					#Calcula el error, aciertos y aciertos(%) y lo anade a sus correspondientes vectores 
-					err,hit,tot = evaluate(N,[[w01,w12,w23],[a01,a12,a23],[th1,th2,th3]],range(10000), printerror=False)
+					err,hit,tot = evaluate(N,[[w01,w12,w23],[a01,a12,a23],[th1,th2,th3]],[k for k in range(N_FONTS) if not k in fonts], printerror=False)
 					error		 += [err]
 					hits		 += [hit]
 					hits_percent += [100.*hit/tot]
@@ -125,11 +131,11 @@ def back_prop(N, W, images, imgset='train', img_extra=None, title='Network.h5', 
 							ETA += -1.*B*ETA
 				
 				if calculate_train_error:
-					training_error += [evaluate(N, [[w01,w12,w23],[a01,a12,a23],[th1,th2,th3]], images, imgset='train', printerror=False)[0]]
+					training_error += [evaluate(N, [[w01,w12,w23],[a01,a12,a23],[th1,th2,th3]], fonts, printerror=False)[0]]
 		
 			#Criterio de convergencia
 			if converge_criteria:
-				if evaluate(N, [[w01,w12,w23],[a01,a12,a23],[th1,th2,th3]], images, imgset='train', printerror=False)[0] < error_criteria:
+				if evaluate(N, [[w01,w12,w23],[a01,a12,a23],[th1,th2,th3]], fonts, printerror=False)[0] < error_criteria:
 					not_converged = False
 				elif n_iterations >= max_iterations:
 					not_converged = False
@@ -157,30 +163,30 @@ def back_prop(N, W, images, imgset='train', img_extra=None, title='Network.h5', 
 				else:		#save==False -> Devuelve como parametros la red y el error
 					return [[w01,w12,w23],[a01,a12,a23],[th1,th2,th3]], [training_error, error, hits, hits_percent, error_prediction, n_iterations]
 		
-		if len(images) == 0:
+		if len(fonts) == 0:
 			n_iterations+=1
-			if n_iterations%n_images_error==0:
-				if img_extra!=None:
-					error_prediction += [evaluate(N,[[w01,w12,w23],[a01,a12,a23],[th1,th2,th3]],[img_extra], imgset='train', printerror=False)[0]]
+			if n_iterations%(10*n_fonts_error)==0:
+				if f_extra!=None:
+					error_prediction += [evaluate(N,[[w01,w12,w23],[a01,a12,a23],[th1,th2,th3]],[f_extra], printerror=False)[0]]
 				
 				if calculate_error:		#calculate_error==True -> Cada vez que ha pasado por todas las imagenes, calcula el error con el resto
 					#Calcula el error, aciertos y aciertos(%) y lo anade a sus correspondientes vectores 
-					err,hit,tot = evaluate(N,[[w01,w12,w23],[a01,a12,a23],[th1,th2,th3]],range(10000), printerror=False)
+					err,hit,tot = evaluate(N,[[w01,w12,w23],[a01,a12,a23],[th1,th2,th3]],np.arange(700,1000,1),printerror=False)
 					error		 += [err]
 					hits		 += [hit]
 					hits_percent += [100.*hit/tot]
 					if n_iterations > 1:
-						if error[len(error)-1] < error[len(error)-2]:
+						if error[n_iterations-1] < error[n_iterations-2]:
 							ETA += A
-						elif error[len(error)-1] > error[len(error)-2]:
+						elif error[n_iterations-1] > error[n_iterations-2]:
 							ETA += -1.*B*ETA
 				
 				if calculate_train_error:
-					training_error += [evaluate(N, [[w01,w12,w23],[a01,a12,a23],[th1,th2,th3]], images, imgset='train', printerror=False)[0]]
+					training_error += [evaluate(N, [[w01,w12,w23],[a01,a12,a23],[th1,th2,th3]], fonts, printerror=False)[0]]
 		
 			#Criterio de convergencia
 			if converge_criteria:
-				if evaluate(N, [[w01,w12,w23],[a01,a12,a23],[th1,th2,th3]], images, imgset='train', printerror=False)[0] < error_criteria:
+				if evaluate(N, [[w01,w12,w23],[a01,a12,a23],[th1,th2,th3]], fonts, printerror=False)[0] < error_criteria:
 					not_converged = False
 				elif n_iterations >= max_iterations:
 					not_converged = False
@@ -208,9 +214,94 @@ def back_prop(N, W, images, imgset='train', img_extra=None, title='Network.h5', 
 				else:		#save==False -> Devuelve como parametros la red y el error
 					return [[w01,w12,w23],[a01,a12,a23],[th1,th2,th3]], [training_error, error, hits, hits_percent, error_prediction, n_iterations]
 
-def evaluate(N, W, images, imgset='test', printerror=True, verbose=False):
-	global TRAIN_LABELS, TEST_LABELS
+# v Esto es basicamente basura v #
+'''
+def back_prop_all(N, W, fonts, n_fonts=1, f_extra=None, title='Network.h5', verbose=False, save=False, calculate_error=False):
+	global ITERATIONS,ITERATIONS_ALL,N_FONTS,BETA,ETA,ETA_ALL,GAMMA,ALPHA,A,B
 	
+	Ideal = np.eye(10)
+	
+	#Reads network parameters
+	w01 = W[0][0]; w12 = W[0][1]; w23 = W[0][2];
+	a01 = W[1][0]; a12 = W[1][1]; a23 = W[1][2];
+	th1 = W[2][0]; th2 = W[2][1]; th3 = W[2][2];
+
+	#Begins network computing
+	error = []	
+	hits = []
+	hits_percent = []
+	error_prediction = []
+	for n in range(ITERATIONS_ALL):
+		
+		if n>0:
+			Deltaw01_,Deltaw12_,Deltaw23_ = Deltaw01[:],Deltaw12[:],Deltaw23[:]
+			Deltath1_,Deltath2_,Deltath3_ = Deltath1[:],Deltath2[:],Deltath3[:]
+		else:
+			Deltaw01_,Deltaw12_,Deltaw23_ = 0*w01,0*w12,0*w23
+			Deltath1_,Deltath2_,Deltath3_ = 0*th1,0*th2,0*th3
+		
+		Deltaw01, Deltaw12, Deltaw23 = 0*w01, 0*w12, 0*w23
+		Deltath1, Deltath2, Deltath3 = 0*th1, 0*th2, 0*th3
+		
+		for j in np.random.choice(fonts,n_fonts,replace=False):
+			for i in range(10):
+				
+				if verbose:
+					print str(n+1)+'/'+str(ITERATIONS_ALL)+': data/img'+str(i)+'{0:03}'.format(j)+'.bmp'
+				
+				img = (255. - np.flip( misc.imread('data/img'+str(i)+'{0:03}'.format(j)+'.bmp',flatten=1) , 0 )) / 255.
+				Dw01,Dw12,Dw23,Dth1,Dth2,Dth3 = iteration(img, Ideal[i], N, w01, w12, w23, a01, a12, a23, th1, th2, th3, verbose)
+				
+				Deltaw01 += Dw01
+				Deltaw12 += Dw12
+				Deltaw23 += Dw23
+				Deltath1 += Dth1
+				Deltath2 += Dth2
+				Deltath3 += Dth3
+		
+		w01 += Deltaw01 + ALPHA * Deltaw01_ - ETA_ALL*GAMMA * w01/((1+w01**2)**2)
+		w12 += Deltaw12 + ALPHA * Deltaw12_ - ETA_ALL*GAMMA * w12/((1+w12**2)**2)
+		w23 += Deltaw23 + ALPHA * Deltaw23_ - ETA_ALL*GAMMA * w23/((1+w23**2)**2)
+		th1 += Deltath1 + ALPHA * Deltath1_ - ETA_ALL*GAMMA * th1/((1+th1**2)**2)
+		th2 += Deltath2 + ALPHA * Deltath2_ - ETA_ALL*GAMMA * th2/((1+th2**2)**2)
+		th3 += Deltath3 + ALPHA * Deltath3_ - ETA_ALL*GAMMA * th3/((1+th3**2)**2)
+		
+		if f_extra!=None:
+			error_prediction += [evaluate(N,[[w01,w12,w23],[a01,a12,a23],[th1,th2,th3]],[f_extra], printerror=False)[0]]
+		
+		if calculate_error:		#calculate_error==True -> Cada vez que ha pasado por todas las imagenes, calcula el error con el resto
+			#Calcula el error, aciertos y aciertos(%) y lo anade a sus correspondientes vectores 
+			err,hit,tot = evaluate(N,[[w01,w12,w23],[a01,a12,a23],[th1,th2,th3]],[k for k in range(N_FONTS) if not k in fonts], printerror=False)
+			error		 += [err]
+			hits		 += [hit]
+			hits_percent += [100.*hit/tot]
+			if n > 0:
+				if error[n] < error[n-1]:
+					ETA_ALL += A
+				else:
+					ETA_ALL += -1.*B*ETA_ALL
+			print ETA_ALL
+	
+	if save:	#save==True -> Guarda en H5 la red y las fuentes con las que ha sido entrenada, devuelve el error
+		fout = h5.File(title,'w')
+		fout.attrs['fonts'] = fonts
+		fout.attrs['N'] = N
+		fout['w01'] = w01
+		fout['w12'] = w12
+		fout['w23'] = w23
+		fout['a01'] = a01
+		fout['a12'] = a12
+		fout['a23'] = a23
+		fout['th1'] = th1
+		fout['th2'] = th2
+		fout['th3'] = th3
+		fout.close()
+		return error, hits, hits_percent
+	else:		#save==False -> Devuelve como parametros la red y el error
+		return [[w01,w12,w23],[a01,a12,a23],[th1,th2,th3]], [error, hits, hits_percent, error_prediction]
+'''
+
+def evaluate(N, W, fonts, printerror=True, verbose=False):
 	Ideal = np.eye(10)
 	
 	#Reads network parameters
@@ -222,36 +313,30 @@ def evaluate(N, W, images, imgset='test', printerror=True, verbose=False):
 	error = 0.
 	aciertos = 0
 	fallos = 0
-	for i in images:
-		
-		if imgset == 'train':
-			img = 1. - 1.*TRAIN_IMAGES[i]/255.
-		elif imgset == 'test':
-			img = 1. - 1.*TEST_IMAGES[i]/255.
-		
-		V0 = img.reshape(-1)
-		H1 = np.array([ np.dot((a01*w01)[k][:] , V0[:]) for k in range(N[1])]) - th1
-		V1 = sigma( H1 )
-		H2 = np.array([ np.dot((a12*w12)[k][:] , V1[:]) for k in range(N[2])]) - th2
-		V2 = sigma( H2 )
-		H3 = np.array([ np.dot((a23*w23)[k][:] , V2[:]) for k in range(N[3])]) - th3
-		V3 = sigma( H3 )
-		if imgset == 'train':
-			error += sum((V3-Ideal[TRAIN_LABELS[i]])**2)
-		elif imgset == 'test':
-			error += sum((V3-Ideal[TEST_LABELS[i]])**2)
-		max_val = V3.tolist().index(np.amax(V3))
-		if max_val == i:
-			aciertos += 1
-		else: 
-			fallos +=1
-		if verbose:
-			print i
-			print V3
-			print 'Maximum value found found in ', max_val,'\n'
+	for j in fonts:
+		for i in range(10):
+			img = 1. - 1.*IMAGES[int(1000*i+j)] / 255.
 	
-	if not len(images) == 0:
-		error = 1.*error/(10*len(images))
+			V0 = img.reshape(-1)
+			H1 = np.array([ np.dot((a01*w01)[k][:] , V0[:]) for k in range(N[1])]) - th1
+			V1 = sigma( H1 )
+			H2 = np.array([ np.dot((a12*w12)[k][:] , V1[:]) for k in range(N[2])]) - th2
+			V2 = sigma( H2 )
+			H3 = np.array([ np.dot((a23*w23)[k][:] , V2[:]) for k in range(N[3])]) - th3
+			V3 = sigma( H3 )
+			error += sum((V3-Ideal[i])**2)
+			max_val = V3.tolist().index(np.amax(V3))
+			if max_val == i:
+				aciertos += 1
+			else: 
+				fallos +=1
+			if verbose:
+				print i
+				print V3
+				print 'Maximum value found found in ', max_val,'\n'
+	
+	if not len(fonts) == 0:
+		error = 1.*error/(10*len(fonts))
 	else:
 		error = 0.
 	

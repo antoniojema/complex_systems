@@ -1,64 +1,70 @@
+#############################################################
+##                                                         ##
+##                       OJO CUIDAO!                       ##
+##           Este código no tiene sentido si no            ##
+##             se activa calculate_train_error             ##
+##                                                         ##
+#############################################################
 import numpy as np
 import h5py as h5
 import back_prop as bp
 import time
 
-Tmax = 6000
-DT = 1000
-bp.N_IMAGES_ERROR = 1000
-'''
-#PROTEUS
-Tmax = 60000
-DT = 10000
-'''
-n_omegas = 10
+Tmax = 7000/10
+DT = 1000/10
+n_fonts_error = 500/10
+max_iterations = 14000
+
+n_omegas = 100
 dim = 28
 N = np.array([dim*dim,16,16,10])
-
-training_error_av = np.zeros((int(Tmax/DT) , int(bp.MAX_ITERATIONS/bp.N_IMAGES_ERROR)))
-error_av = np.zeros((int(Tmax/DT) , int(bp.MAX_ITERATIONS/bp.N_IMAGES_ERROR)))
-hits_av = np.zeros((int(Tmax/DT) , int(bp.MAX_ITERATIONS/bp.N_IMAGES_ERROR)))
 
 for i in range(n_omegas):
 	print '\n###',i,'###'
 	
-	for A in [0.1,0.3,0.5,0.7]:
+	for A in [0.3,0.5,0.7]:
 		for B in [0.3,0.7]:
-			bp.A=A
-			bp.B=B
+			bp.A = A
+			bp.B = B
 			print '\n# A =',A,'#\n# B =',B,'#'
 			
-			[[w01,w12,w23],[a01,a12,a23],[th1,th2,th3]] = bp.set_rand_omega(N)
-			
 			training_error = []
-			error = []
-			hits = []
+			test_error = []
+			hits_perc = []
 			
 			for T in np.arange(DT,Tmax+1,DT):
 				print 'T =',T
 				t0 = time.time()
 				
-				images = np.random.choice(range(bp.N_IMAGES_TRAIN),T,replace=False)
+				[[w01,w12,w23],[a01,a12,a23],[th1,th2,th3]] = bp.set_rand_omega(N)
+				fonts = np.random.choice(range(700),T,replace=False)
 				
-				tr_err,err,aux,hit = bp.back_prop(N,[[w01,w12,w23],[a01,a12,a23],[th1,th2,th3]],images,calculate_error=True,calculate_train_error=True)[1][:4]
+				[[w01,w12,w23],[a01,a12,a23],[th1,th2,th3]] = bp.back_prop(N,[[w01,w12,w23],[a01,a12,a23],[th1,th2,th3]],fonts,max_iterations=max_iterations,n_fonts_error=n_fonts_error)[0]
+				
+				tr_err = bp.evaluate(N,[[w01,w12,w23],[a01,a12,a23],[th1,th2,th3]],fonts,printerror=False)[0]
+				ts_err, hits = bp.evaluate(N,[[w01,w12,w23],[a01,a12,a23],[th1,th2,th3]],np.arange(700,1000,1),printerror=False)[:2]
+				
+				print tr_err,ts_err,hits
 				
 				training_error += [tr_err]
-				error += [err]
-				hits += [hit]
-				del tr_err, err, aux, hit
+				test_error += [ts_err]
+				hits_perc += [1.*hits/30]
 				
 				print time.time()-t0,'s'
 			
-			
-			training_error_av += training_error
-			error_av += error
-			hits_av += hits
-			
 			print 'Generando archivo...'
+			if i!=0:
+				fin = h5.File('Error_adaptative_'+str(A)+'_'+str(B)+'.h5','r')
+				training_error = 1.*( (fin['training_error'][:])*i + np.array(training_error) ) / (i+1)
+				test_error = 1.*( (fin['test_error'][:])*i + np.array(test_error) ) / (i+1)
+				hits_perc = 1.*( (fin['hits_percent'][:])*i + np.array(hits_perc) ) / (i+1)
+				fin.close()
+			
 			fout = h5.File('Error_adaptative_'+str(A)+'_'+str(B)+'.h5','w')
 			fout.attrs['n_omegas'] = i+1
-			fout['training_error'] = 1.*training_error_av/(i+1)
-			fout['error'] = 1.*error_av/(i+1)
-			fout['hits_percent'] = 1.*hits_av/(i+1)
+			fout.attrs['T'] = np.arange(DT,Tmax+1,DT)
+			fout['training_error'] = training_error
+			fout['test_error'] = test_error
+			fout['hits_percent'] = hits_perc
 			fout.close()
 			print 'Done'

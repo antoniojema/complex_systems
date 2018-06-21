@@ -5,7 +5,7 @@ import h5py as h5
 import back_prop as bp
 import time
 
-T = 20
+T=20
 n_omegas = 100
 dim = 28
 N = np.array([dim*dim,16,16,10])
@@ -13,10 +13,10 @@ N = np.array([dim*dim,16,16,10])
 max_iterations=2500
 n_fonts_error=10
 
-training_error_av = np.zeros((int(T/10),int(max_iterations/(10*n_fonts_error))))
-error_av = np.zeros((int(T/10),int(max_iterations/(10*n_fonts_error))))
-hits_av = np.zeros((int(T/10),int(max_iterations/(10*n_fonts_error))))
-error_prediction_av = np.zeros((int(T/10),int(max_iterations/(10*n_fonts_error))))
+#training_error_av = np.zeros((int(T/10),int(max_iterations/(10*n_fonts_error))))
+#error_av = np.zeros((int(T/10),int(max_iterations/(10*n_fonts_error))))
+#hits_av = np.zeros((int(T/10),int(max_iterations/(10*n_fonts_error))))
+#error_prediction_av = np.zeros((int(T/10),int(max_iterations/(10*n_fonts_error))))
 
 for i in range(n_omegas):
 	print '\n###',i,'###'

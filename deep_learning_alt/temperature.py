@@ -15,9 +15,9 @@ N = np.array([dim*dim,16,16,10])
 for i in range(n_omegas):
 	print '\n###',i,'###'
 	
-	for alpha in [0.2,0.4,0.6,0.8,0.9,1]:
-		bp.ALPHA=alpha
-		print '\n# ALPHA =',alpha,'#'
+	for dispersion in [1e-6,1e-5,1e-4,1e-3,1e-2]:
+		bp.DISPERSION=dispersion
+		print '\n# DISPERSION =',dispersion,'#'
 		
 		training_error = []
 		test_error = []
@@ -45,13 +45,13 @@ for i in range(n_omegas):
 		
 		print 'Generando archivo...'
 		if i!=0:
-			fin = h5.File('Error_momentum_'+str(alpha)+'.h5','r')
+			fin = h5.File('Error_temperature_'+str(dispersion)+'.h5','r')
 			training_error = 1.*( (fin['training_error'][:])*i + np.array(training_error) ) / (i+1)
 			test_error = 1.*( (fin['test_error'][:])*i + np.array(test_error) ) / (i+1)
 			hits_perc = 1.*( (fin['hits_percent'][:])*i + np.array(hits_perc) ) / (i+1)
 			fin.close()
 		
-		fout = h5.File('Error_momentum_'+str(alpha)+'.h5','w')
+		fout = h5.File('Error_temperature_'+str(dispersion)+'.h5','w')
 		fout.attrs['n_omegas'] = i+1
 		fout.attrs['T'] = np.arange(DT,Tmax+1,DT)
 		fout['training_error'] = training_error
