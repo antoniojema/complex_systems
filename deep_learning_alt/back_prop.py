@@ -45,18 +45,18 @@ def iteration(img, Id, N, w01, w12, w23, a01, a12, a23, th1, th2, th3, verbose=F
 		print Id.tolist().index(1)
 		print V3
 		print "Maximum value found found in ", max_val,"\n"
-
+	
 	#Back propagation begins here:
 	delta23 = sigma_(H3)*(Id-V3)
 	x , y = np.meshgrid(V2,delta23)
 	Deltaw23 = ETA*x*y
 	Deltath3 = -1.*ETA*delta23
-
+	
 	delta12 = sigma_(H2) * np.array([np.dot( (a23*w23).transpose()[j] , delta23 ) for j in range(N[2])])
 	x , y = np.meshgrid(V1,delta12)
 	Deltaw12 = ETA*x*y
 	Deltath2 = -1.*ETA*delta12
-
+	
 	delta01 = sigma_(H1) * np.array([np.dot( (a12*w12).transpose()[j] , delta12 ) for j in range(N[1])])
 	x , y = np.meshgrid(V0,delta01)
 	Deltaw01 = ETA*x*y

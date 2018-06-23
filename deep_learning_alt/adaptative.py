@@ -1,7 +1,7 @@
 #############################################################
 ##                                                         ##
 ##                       OJO CUIDAO!                       ##
-##           Este código no tiene sentido si no            ##
+##           Este codigo no tiene sentido si no            ##
 ##             se activa calculate_train_error             ##
 ##                                                         ##
 #############################################################
