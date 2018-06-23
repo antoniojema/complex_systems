@@ -13,10 +13,6 @@ N = np.array([dim*dim,16,16,10])
 max_iterations=2500
 n_fonts_error=10
 
-#training_error_av = np.zeros((int(T/10),int(max_iterations/(10*n_fonts_error))))
-#error_av = np.zeros((int(T/10),int(max_iterations/(10*n_fonts_error))))
-#hits_av = np.zeros((int(T/10),int(max_iterations/(10*n_fonts_error))))
-#error_prediction_av = np.zeros((int(T/10),int(max_iterations/(10*n_fonts_error))))
 
 for i in range(n_omegas):
 	print '\n###',i,'###'
