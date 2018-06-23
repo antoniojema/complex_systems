@@ -120,7 +120,7 @@ def back_prop(N, W, fonts, f_extra=None, title='Network.h5', verbose=False, save
 				
 				if calculate_error:		#calculate_error==True -> Cada vez que ha pasado por todas las imagenes, calcula el error con el resto
 					#Calcula el error, aciertos y aciertos(%) y lo anade a sus correspondientes vectores 
-					err,hit,tot = evaluate(N,[[w01,w12,w23],[a01,a12,a23],[th1,th2,th3]],[k for k in range(N_FONTS) if not k in fonts], printerror=False)
+					err,hit,tot = evaluate(N,[[w01,w12,w23],[a01,a12,a23],[th1,th2,th3]],np.arange(700,1000,1), printerror=False)
 					error		 += [err]
 					hits		 += [hit]
 					hits_percent += [100.*hit/tot]
