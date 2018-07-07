@@ -5,18 +5,23 @@ from scipy import misc
 import h5py as h5
 import time
 
-MAX_ITERATIONS = 10000	#Cuantas iteraciones realizara como maximo, si no se indica otra cosa
-ITERATIONS_ALL = 100
+MAX_ITERATIONS = 14000	#Cuantas iteraciones realizara como maximo, si no se indica otra cosa
 N_FONTS_ERROR = 50		#Cada cuantas fuentes computa los errores (multiplicar por 10 para obtener iteraciones)
 N_FONTS = 1000
 BETA = 0.5		# Sigmoid parameter
 ETA = 1 		# Gradient descent parameter
-ETA_ALL =0.1	# Gradient descent all parameter
 GAMMA = 0		# Parametro para darle menos valor a los valores bajos
 ALPHA = 0		# Momentum parameter
 A = 0  			# Parameters for adaptative ETA 
 B = 0
 DEVIATION = 0	# Deviation for the gaussian random generator
+
+fin = h5.File('images.h5','r')
+IMAGES = fin['images'][:]		# All data
+fin.close()
+del fin
+
+####################################################################################
 
 def sigma(x):
 	global BETA
@@ -27,7 +32,7 @@ def sigma_(x):
 	return 2.*BETA*np.exp(-2*BETA*x)/((1+np.exp(-2.*BETA*x))**2)
 
 def iteration(img, Id, N, w01, w12, w23, a01, a12, a23, th1, th2, th3, verbose=False):
-	global ITERATIONS,ITERATIONS_ALL,N_FONTS,BETA,ETA,ETA_ALL,GAMMA,ALPHA,A,B
+	global ETA
 	V0 = img.reshape(-1)
 	H1 = np.array([ np.dot((a01*w01)[i][:] , V0[:]) for i in range(N[1])]) - th1
 	V1 = sigma( H1 )
@@ -40,18 +45,18 @@ def iteration(img, Id, N, w01, w12, w23, a01, a12, a23, th1, th2, th3, verbose=F
 		print Id.tolist().index(1)
 		print V3
 		print "Maximum value found found in ", max_val,"\n"
-
+	
 	#Back propagation begins here:
 	delta23 = sigma_(H3)*(Id-V3)
 	x , y = np.meshgrid(V2,delta23)
 	Deltaw23 = ETA*x*y
 	Deltath3 = -1.*ETA*delta23
-
+	
 	delta12 = sigma_(H2) * np.array([np.dot( (a23*w23).transpose()[j] , delta23 ) for j in range(N[2])])
 	x , y = np.meshgrid(V1,delta12)
 	Deltaw12 = ETA*x*y
 	Deltath2 = -1.*ETA*delta12
-
+	
 	delta01 = sigma_(H1) * np.array([np.dot( (a12*w12).transpose()[j] , delta12 ) for j in range(N[1])])
 	x , y = np.meshgrid(V0,delta01)
 	Deltaw01 = ETA*x*y
@@ -60,7 +65,7 @@ def iteration(img, Id, N, w01, w12, w23, a01, a12, a23, th1, th2, th3, verbose=F
 	return Deltaw01 , Deltaw12 , Deltaw23, Deltath1, Deltath2, Deltath3
 
 def back_prop(N, W, fonts, f_extra=None, title='Network.h5', verbose=False, save=False, calculate_error=False, calculate_train_error=False,converge_criteria=False,max_iterations=MAX_ITERATIONS,n_fonts_error=N_FONTS_ERROR,error_criteria=0.1):
-	global ITERATIONS,ITERATIONS_ALL,N_FONTS,BETA,ETA,ETA_ALL,GAMMA,ALPHA,A,B
+	global ETA,GAMMA,ALPHA,A,B
 	
 	Ideal = np.eye(10)
 	
@@ -77,7 +82,6 @@ def back_prop(N, W, fonts, f_extra=None, title='Network.h5', verbose=False, save
 	error_prediction = []
 	not_converged=True
 	n_iterations=0
-	#for n in range(ITERATIONS):
 	
 	while True:
 		for j in fonts:
@@ -92,15 +96,30 @@ def back_prop(N, W, fonts, f_extra=None, title='Network.h5', verbose=False, save
 				if verbose:
 					print str(n_iterations)+': data/img'+str(i)+'{0:03}'.format(j)+'.bmp'
 				
-				img = (255. - np.flip( misc.imread('data/img'+str(i)+'{0:03}'.format(j)+'.bmp',flatten=1) , 0 )) / 255.
+				img = 1. - 1.*IMAGES[int(1000*i+j)] / 255.
 				Dw01,Dw12,Dw23,Dth1,Dth2,Dth3 = iteration(img, Ideal[i], N, w01, w12, w23, a01, a12, a23, th1, th2, th3, verbose)
 				
-				w01 += Dw01 + ALPHA * Dw01_ - ETA*GAMMA * w01/((1+w01**2)**2) + np.random.normal(0,DEVIATION)
-				w12 += Dw12 + ALPHA * Dw12_ - ETA*GAMMA * w12/((1+w12**2)**2) + np.random.normal(0,DEVIATION)
-				w23 += Dw23 + ALPHA * Dw23_ - ETA*GAMMA * w23/((1+w23**2)**2) + np.random.normal(0,DEVIATION)
-				th1 += Dth1 + ALPHA * Dth1_ - ETA*GAMMA * th1/((1+th1**2)**2) + np.random.normal(0,DEVIATION)
-				th2 += Dth2 + ALPHA * Dth2_ - ETA*GAMMA * th2/((1+th2**2)**2) + np.random.normal(0,DEVIATION)
-				th3 += Dth3 + ALPHA * Dth3_ - ETA*GAMMA * th3/((1+th3**2)**2) + np.random.normal(0,DEVIATION)
+				w01 += Dw01 + ALPHA * Dw01_
+				w12 += Dw12 + ALPHA * Dw12_
+				w23 += Dw23 + ALPHA * Dw23_
+				th1 += Dth1 + ALPHA * Dth1_
+				th2 += Dth2 + ALPHA * Dth2_
+				th3 += Dth3 + ALPHA * Dth3_
+				
+				w01 = w01 - ETA*GAMMA * w01/((1+w01**2)**2)
+				w12 = w12 - ETA*GAMMA * w12/((1+w12**2)**2)
+				w23 = w23 - ETA*GAMMA * w23/((1+w23**2)**2)
+				th1 = th1 - ETA*GAMMA * th1/((1+th1**2)**2)
+				th2 = th2 - ETA*GAMMA * th2/((1+th2**2)**2)
+				th3 = th3 - ETA*GAMMA * th3/((1+th3**2)**2)
+				
+				if DEVIATION!=0:
+					w01 += np.random.normal(0,DEVIATION)
+					w12 += np.random.normal(0,DEVIATION)
+					w23 += np.random.normal(0,DEVIATION)
+					th1 += np.random.normal(0,DEVIATION)
+					th2 += np.random.normal(0,DEVIATION)
+					th3 += np.random.normal(0,DEVIATION)
 			
 			if n_iterations%(10*n_fonts_error)==0:
 				if f_extra!=None:
@@ -108,7 +127,7 @@ def back_prop(N, W, fonts, f_extra=None, title='Network.h5', verbose=False, save
 				
 				if calculate_error:		#calculate_error==True -> Cada vez que ha pasado por todas las imagenes, calcula el error con el resto
 					#Calcula el error, aciertos y aciertos(%) y lo anade a sus correspondientes vectores 
-					err,hit,tot = evaluate(N,[[w01,w12,w23],[a01,a12,a23],[th1,th2,th3]],[k for k in range(N_FONTS) if not k in fonts], printerror=False)
+					err,hit,tot = evaluate(N,[[w01,w12,w23],[a01,a12,a23],[th1,th2,th3]],np.arange(700,1000,1), printerror=False)
 					error		 += [err]
 					hits		 += [hit]
 					hits_percent += [100.*hit/tot]
@@ -159,7 +178,7 @@ def back_prop(N, W, fonts, f_extra=None, title='Network.h5', verbose=False, save
 				
 				if calculate_error:		#calculate_error==True -> Cada vez que ha pasado por todas las imagenes, calcula el error con el resto
 					#Calcula el error, aciertos y aciertos(%) y lo anade a sus correspondientes vectores 
-					err,hit,tot = evaluate(N,[[w01,w12,w23],[a01,a12,a23],[th1,th2,th3]],[k for k in range(N_FONTS) if not k in fonts], printerror=False)
+					err,hit,tot = evaluate(N,[[w01,w12,w23],[a01,a12,a23],[th1,th2,th3]],np.arange(700,1000,1),printerror=False)
 					error		 += [err]
 					hits		 += [hit]
 					hits_percent += [100.*hit/tot]
@@ -290,7 +309,7 @@ def back_prop_all(N, W, fonts, n_fonts=1, f_extra=None, title='Network.h5', verb
 '''
 
 def evaluate(N, W, fonts, printerror=True, verbose=False):
-	global ITERATIONS,ITERATIONS_ALL,N_FONTS,BETA,ETA,ETA_ALL,GAMMA,ALPHA,A,B
+	global GAMMA
 	
 	Ideal = np.eye(10)
 	
@@ -305,8 +324,8 @@ def evaluate(N, W, fonts, printerror=True, verbose=False):
 	fallos = 0
 	for j in fonts:
 		for i in range(10):
-			img = (255. - np.flip( misc.imread('data/img'+str(i)+'{0:03}'.format(j)+'.bmp',flatten=1) , 0 )) / 255.
-	
+			img = 1. - 1.*IMAGES[int(1000*i+j)] / 255.
+			
 			V0 = img.reshape(-1)
 			H1 = np.array([ np.dot((a01*w01)[k][:] , V0[:]) for k in range(N[1])]) - th1
 			V1 = sigma( H1 )
@@ -314,7 +333,12 @@ def evaluate(N, W, fonts, printerror=True, verbose=False):
 			V2 = sigma( H2 )
 			H3 = np.array([ np.dot((a23*w23)[k][:] , V2[:]) for k in range(N[3])]) - th3
 			V3 = sigma( H3 )
-			error += sum((V3-Ideal[i])**2)
+			if GAMMA == 0:
+				error += sum((V3-Ideal[i])**2)
+			elif i!=0:
+				error += sum((V3-Ideal[i-1])**2)
+			else:
+				error += sum((V3-Ideal[9])**2)
 			max_val = V3.tolist().index(np.amax(V3))
 			if max_val == i:
 				aciertos += 1
@@ -341,16 +365,22 @@ def evaluate(N, W, fonts, printerror=True, verbose=False):
 def set_rand_omega(N):
 	#N = np.array([dim*dim,16,16,10])
 	#Weighs matrix. wab[i][j] is the weigh of a[j] for b[i]
-	w01 = np.array([[2.*(random.random()-0.5) for j in range(N[0])] for i in range(N[1])])
-	w12 = np.array([[2.*(random.random()-0.5) for j in range(N[1])] for i in range(N[2])])
-	w23 = np.array([[2.*(random.random()-0.5) for j in range(N[2])] for i in range(N[3])])
+	#w01 = np.array([[2.*(random.random()-0.5) for j in range(N[0])] for i in range(N[1])])
+	#w12 = np.array([[2.*(random.random()-0.5) for j in range(N[1])] for i in range(N[2])])
+	#w23 = np.array([[2.*(random.random()-0.5) for j in range(N[2])] for i in range(N[3])])
+	w01 = 2*(np.random.random((N[1],N[0]))-0.5)
+	w12 = 2*(np.random.random((N[2],N[1]))-0.5)
+	w23 = 2*(np.random.random((N[3],N[2]))-0.5)
 	#Alive matrix. If TRUE it means weigh exists
 	a01 = np.array([[True for j in range(N[0])] for i in range(N[1])])
 	a12 = np.array([[True for j in range(N[1])] for i in range(N[2])])
 	a23 = np.array([[True for j in range(N[2])] for i in range(N[3])])
 	#Thresholds
-	th1 = np.array([2.*(random.random()-0.5) for i in range(N[1])])
-	th2 = np.array([2.*(random.random()-0.5) for i in range(N[2])])
-	th3 = np.array([2.*(random.random()-0.5) for i in range(N[3])])
+	#th1 = np.array([2.*(random.random()-0.5) for i in range(N[1])])
+	#th2 = np.array([2.*(random.random()-0.5) for i in range(N[2])])
+	#th3 = np.array([2.*(random.random()-0.5) for i in range(N[3])])
+	th1 = 2*(np.random.random(N[1])-0.5)
+	th2 = 2*(np.random.random(N[2])-0.5)
+	th3 = 2*(np.random.random(N[3])-0.5)
 	
 	return [[w01, w12, w23],[a01, a12, a23],[th1, th2, th3]]

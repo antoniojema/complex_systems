@@ -16,3 +16,7 @@ deep_learning/TO_DO_LIST.txt
 *.pptx
 beca
 deep_learning/Robert/
+deep_learning/images.h5
+results_alt/
+results/*.h5
+results/*.txt
