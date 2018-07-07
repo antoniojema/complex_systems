@@ -3,6 +3,7 @@ ej_2/*
 deep_learning/data/*
 deep_learning/samples/*
 deep_learning/TO_DO_LIST.txt
+*.txt
 *.bmp
 *.pdf
 *.jpg

@@ -121,7 +121,7 @@ def back_prop(N, W, fonts, f_extra=None, title='Network.h5', verbose=False, save
 					th2 += np.random.normal(0,DEVIATION)
 					th3 += np.random.normal(0,DEVIATION)
 			
-			if n_iterations%(10*n_fonts_error)==0:
+			if n_iterations%(10*n_fonts_error)==0 or n_iterations==1:
 				if f_extra!=None:
 					error_prediction += [evaluate(N,[[w01,w12,w23],[a01,a12,a23],[th1,th2,th3]],[f_extra], printerror=False)[0]]
 				
